@@ -1,108 +1,111 @@
-<script setup>
-import {ref, computed} from "vue";
-
-/**
- * Props Definition
- */
-const props = defineProps({
-  settings: {type: Object, default: () => ({})},
-});
-
-/**
- * State
- */
-const activeIndex = ref(null);
-
-/**
- * Computed Styles
- */
-const markerBaseStyle = computed(() => ({
-  backgroundColor: props.settings.markerColor || "#3b82f6",
-  color: props.settings.iconColor || "#ffffff",
-}));
-
-/**
- * Interaction Logic
- */
-const handleInteraction = (index, type) => {
-  // Mobile friendly: Tap to toggle
-  if (type === "click") {
-    activeIndex.value = activeIndex.value === index ? null : index;
-  }
-  // Desktop hover
-  if (type === "enter") activeIndex.value = index;
-  if (type === "leave") activeIndex.value = null;
-};
-
-const getLinkUrl = (linkObj) => {
-  if (!linkObj) return null;
-  if (typeof linkObj === "string") return linkObj;
-  if (linkObj.url) return linkObj.url;
-  return null;
-};
-</script>
-
 <template>
-  <div class="s-hotspot-container relative w-full overflow-visible select-none rounded-xl">
-    <img :src="settings.image" class="w-full h-auto block rounded-xl shadow-lg object-cover" alt="Interactive Hotspot Image" loading="lazy" />
+  <div class="relative w-full overflow-hidden rounded-lg shadow-md group select-none">
+    <img :src="settings.imageUrl" alt="Hotspot Map" class="w-full h-auto object-cover block pointer-events-none" loading="lazy" />
 
-    <div class="absolute inset-0 bg-black/5 rounded-xl pointer-events-none"></div>
+    <div class="absolute inset-0 bg-black/5 pointer-events-none"></div>
 
     <div
-      v-for="(point, index) in settings.points"
+      v-for="(hotspot, index) in settings.hotspots"
       :key="index"
-      class="s-hotspot-marker absolute z-10 flex items-center justify-center cursor-pointer"
-      :style="{left: `${point.x}%`, top: `${point.y}%`}"
-      @click="handleInteraction(index, 'click')"
+      class="hotspot-marker absolute cursor-pointer z-10 flex items-center justify-center"
+      :style="{left: hotspot.x + '%', top: hotspot.y + '%'}"
       @mouseenter="handleInteraction(index, 'enter')"
       @mouseleave="handleInteraction(index, 'leave')"
+      @click="handleInteraction(index, 'click')"
     >
-      <span v-if="settings.pulse" class="absolute w-full h-full rounded-full opacity-75 animate-ping" :style="{backgroundColor: settings.markerColor || '#3b82f6'}"></span>
+      <div
+        class="relative w-8 h-8 rounded-full shadow-lg transition-transform duration-300 hover:scale-110 flex items-center justify-center border-2 border-white overflow-hidden"
+        :class="activeHotspot === index ? 'scale-110 ring-4 ring-white/30' : ''"
+        :style="{backgroundColor: settings.markerColor || '#3b82f6'}"
+      >
+        <img v-if="hotspot.type === 'image' && hotspot.image" :src="hotspot.image" alt="icon" class="w-full h-full object-cover" />
 
-      <div class="relative w-8 h-8 md:w-10 md:h-10 rounded-full shadow-lg border-2 border-white flex items-center justify-center transition-transform transform hover:scale-110 active:scale-95" :style="markerBaseStyle">
-        <i :class="point.icon" class="text-sm md:text-base"></i>
+        <i v-else :class="hotspot.icon" class="text-sm" :style="{color: settings.iconColor || '#ffffff'}"></i>
+
+        <span v-if="activeHotspot !== index" class="absolute -inset-1 rounded-full opacity-75 animate-ping z-[-1]" :style="{backgroundColor: settings.markerColor || '#3b82f6'}"></span>
       </div>
 
       <transition name="fade-slide">
-        <div
-          v-if="activeIndex === index"
-          class="s-tooltip-card absolute z-20 w-64 bg-white p-4 rounded-lg shadow-2xl text-left"
-          :class="{
-            'bottom-full mb-4': point.y > 50 /* Auto position top */,
-            'top-full mt-4': point.y <= 50 /* Auto position bottom */,
-            '-translate-x-1/2': true /* Center horizontally */,
-          }"
-        >
-          <div class="flex justify-between items-start mb-1">
-            <h4 class="text-sm font-bold text-gray-900">{{ point.title }}</h4>
-            <span v-if="point.price" class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-              {{ point.price }}
-            </span>
+        <div v-if="activeHotspot === index" class="hotspot-popup absolute bottom-full left-1/2 mb-4 w-64 -translate-x-1/2 rounded-lg bg-white p-4 shadow-xl text-left z-20" @click.stop>
+          <div class="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 bg-white shadow-sm"></div>
+
+          <div class="relative z-10">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="text-sm font-bold text-gray-900 leading-tight">
+                {{ hotspot.title }}
+              </h4>
+              <span v-if="hotspot.price" class="ml-2 px-2 py-0.5 text-[10px] font-bold text-green-700 bg-green-100 rounded-full whitespace-nowrap">
+                {{ hotspot.price }}
+              </span>
+            </div>
+
+            <p class="text-xs text-gray-500 leading-relaxed mb-3">
+              {{ hotspot.description }}
+            </p>
+
+            <a v-if="hotspot.link && hotspot.link.url" :href="hotspot.link.url" :target="hotspot.link.target || '_self'" class="inline-flex items-center text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors">
+              View Details
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
           </div>
-
-          <p class="text-xs text-gray-500 leading-relaxed mb-3">{{ point.desc }}</p>
-
-          <a v-if="point.link" :href="getLinkUrl(point.link)" class="inline-flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
-            View Details
-            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-          </a>
-
-          <div class="absolute w-3 h-3 bg-white transform rotate-45 left-1/2 -ml-1.5" :class="point.y > 50 ? '-bottom-1.5' : '-top-1.5'"></div>
         </div>
       </transition>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
-/* Scoped to avoid conflicts */
-.s-hotspot-container {
-  /* Ensuring tooltips are visible even if they extend outside */
-  /* If image is full width, sometimes overflow-hidden cuts tooltips. visible is safer. */
-  overflow: visible;
+<script setup>
+import {ref} from "vue";
+
+/**
+ * Props Definition
+ */
+const props = defineProps({
+  settings: {
+    type: Object,
+    required: true,
+    default: () => ({
+      imageUrl: "",
+      hotspots: [],
+      markerColor: "#3b82f6",
+      iconColor: "#ffffff",
+    }),
+  },
+});
+
+/**
+ * Active State
+ */
+const activeHotspot = ref(null);
+
+/**
+ * Interaction Handler
+ * Handles both Hover (Desktop) and Click (Mobile)
+ */
+const handleInteraction = (index, type) => {
+  if (type === "click") {
+    // Toggle on click
+    activeHotspot.value = activeHotspot.value === index ? null : index;
+  } else if (type === "enter") {
+    activeHotspot.value = index;
+  } else if (type === "leave") {
+    activeHotspot.value = null;
+  }
+};
+</script>
+
+<style scoped lang="scss">
+/* * Center Marker Logic
+ * Translates the marker so its center aligns with the coordinate.
+ */
+.hotspot-marker {
+  transform: translate(-50%, -50%);
 }
 
-/* Tooltip Animation */
+/* * Tooltip Transition 
+ */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -111,6 +114,6 @@ const getLinkUrl = (linkObj) => {
 .fade-slide-enter-from,
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(10px); /* Slide up effect */
+  transform: translate(-50%, 10px);
 }
 </style>
