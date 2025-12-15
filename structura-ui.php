@@ -115,6 +115,31 @@ final class StructuraUI {
                 'class' => 'StructuraUI\Elements\Hotspots',
             ],
 
+            'structura-lottie' => [
+                'file'  => __DIR__ . '/includes/Elements/Lottie.php',
+                'class' => 'StructuraUI\Elements\Lottie',
+            ],
+
+            'structura-typewriter' => [
+                'file'  => __DIR__ . '/includes/Elements/Typewriter.php',
+                'class' => 'StructuraUI\Elements\Typewriter',
+            ],
+
+            'structura-counter' => [
+                'file'  => __DIR__ . '/includes/Elements/Counter.php',
+                'class' => 'StructuraUI\Elements\Counter',
+            ],
+
+            'structura-tilt-image' => [
+                'file'  => __DIR__ . '/includes/Elements/TiltImage.php',
+                'class' => 'StructuraUI\Elements\TiltImage',
+            ],
+
+            'structura-pricing-card' => [
+                'file'  => __DIR__ . '/includes/Elements/PricingCard.php',
+                'class' => 'StructuraUI\Elements\PricingCard',
+            ],
+
             // Future elements can be added here easily
         ];
 
